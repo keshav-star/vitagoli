@@ -9,7 +9,7 @@ export default function QuizSubmit() {
   const router = useRouter();
   const { answers, email, resetQuiz } = useQuiz();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (answers.length !== 5 || !email) {
@@ -41,7 +41,9 @@ export default function QuizSubmit() {
       router.push(`/quiz/result?id=${data.data.id}`);
       resetQuiz();
     } catch (err) {
-      setError(err.message);
+      setError(
+        err instanceof Error ? err.message : 'An unexpected error occurred'
+      );
     } finally {
       setIsSubmitting(false);
     }

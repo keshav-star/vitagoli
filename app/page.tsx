@@ -8,7 +8,7 @@ export default function Home() {
   const router = useRouter();
   const { email, setEmail } = useQuiz();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (email) {
       router.push('/quiz/1');
