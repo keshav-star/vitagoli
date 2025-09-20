@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
 
 interface ButtonProps {
@@ -76,20 +75,37 @@ export function Card({ children, className = '', gradient = false }: CardProps) 
 
 interface QuizLayoutProps {
   children: ReactNode;
+  hideBackground?: boolean;
+  className?: string;
 }
 
-export function QuizLayout({ children }: QuizLayoutProps) {
+export function QuizLayout({ children, hideBackground = false, className = '' }: QuizLayoutProps) {
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className={`min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 ${className}`}>
       {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-full">
-        <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
-        <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
-      </div>
+      {!hideBackground && (
+        <div className="absolute top-0 left-0 w-full h-full opacity-60 dark:opacity-30">
+          <div 
+            className="absolute -top-4 -left-4 w-48 h-48 sm:w-72 sm:h-72 bg-purple-300 dark:bg-purple-600 rounded-full 
+            mix-blend-multiply dark:mix-blend-hard-light filter blur-xl animate-blob" 
+          />
+          <div 
+            className="absolute top-0 -right-4 w-48 h-48 sm:w-72 sm:h-72 bg-indigo-300 dark:bg-indigo-600 rounded-full 
+            mix-blend-multiply dark:mix-blend-hard-light filter blur-xl animate-blob animation-delay-2000"
+          />
+          <div 
+            className="absolute -bottom-8 left-1/4 w-48 h-48 sm:w-72 sm:h-72 bg-pink-300 dark:bg-pink-600 rounded-full 
+            mix-blend-multiply dark:mix-blend-hard-light filter blur-xl animate-blob animation-delay-4000"
+          />
+          <div 
+            className="absolute top-1/2 -right-8 w-48 h-48 sm:w-72 sm:h-72 bg-blue-300 dark:bg-blue-600 rounded-full 
+            mix-blend-multiply dark:mix-blend-hard-light filter blur-xl animate-blob animation-delay-6000"
+          />
+        </div>
+      )}
 
       {/* Content */}
-      <div className="relative min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+      <div className="relative min-h-screen py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
         <div className="max-w-xl mx-auto">
           {children}
         </div>
@@ -98,8 +114,18 @@ export function QuizLayout({ children }: QuizLayoutProps) {
   );
 }
 
-interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
-}
+export {
+  LoadingSpinner,
+  LoadingDots,
+  Skeleton,
+  SkeletonText,
+  SkeletonCard,
+  LoadingCard,
+} from './loading';
 
-export { LoadingSpinner, LoadingDots, Skeleton, SkeletonText, SkeletonCard } from './loading';
+// Re-export from ui components
+export * from './ui/glass-card';
+export * from './ui/gradient-text';
+export * from './ui/button';
+export * from './ui/hero-section';
+export * from './ui/input';

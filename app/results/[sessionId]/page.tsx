@@ -1,33 +1,116 @@
-import { QuizLayout, Card } from '@/components/ui';
-import connectDB from '@/lib/mongo';
-import QuizResult from '@/models/QuizResult';
-import Link from 'next/link';
-import { LoadingCard } from '@/components/loading';
-import { ShareButton } from '@/components/share-button';
+'use client';
 
-async function getQuizResult(sessionId: string) {
-  try {
-    await connectDB();
-    const result = await QuizResult.findById(sessionId);
-    if (!result) return null;
-    return result;
-  } catch (error) {
-    console.error('Error fetching quiz result:', error);
-    return null;
-  }
+import { GlassCard, Button, LoadingCard, GradientText } from '@/components/ui';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ShareButton } from '@/components/share-button';
+import { motion } from 'framer-motion';
+
+interface QuizResponse {
+  success: boolean;
+  result?: IQuizResult;
+  error?: string;
 }
 
-export default async function ResultPage(props: { params: { sessionId: string } }) {
-  const { sessionId } = await props.params;
-  const result = await getQuizResult(sessionId);
+interface IQuizResult {
+  _id: string;
+  topic: string;
+  score: number;
+  feedback: string;
+  questions: Array<{
+    question: string;
+    options: string[];
+    correctAnswer: string;
+  }>;
+  answers: string[];
+}
 
-  if (!result) {
+const pageVariants = {
+  initial: { opacity: 0 },
+  enter: { 
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+      when: 'beforeChildren',
+    }
+  },
+};
+
+const itemVariants = {
+  initial: { opacity: 0, y: 20 },
+  enter: { opacity: 1, y: 0 },
+};
+
+export default function ResultPage({ params }: { params: { sessionId: string } }) {
+  const [result, setResult] = useState<IQuizResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchResult = async () => {
+      try {
+        const res = await fetch(`/api/quiz/result/${params.sessionId}`);
+        const data: QuizResponse = await res.json();
+        
+        if (!data.success || !data.result) {
+          throw new Error(data.error || 'Failed to fetch results');
+        }
+        
+        setResult(data.result);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load quiz results';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchResult();
+  }, [params.sessionId]);
+
+  if (loading) {
     return (
-      <QuizLayout>
-        <Card gradient>
+      <motion.div 
+        className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 p-4"
+        initial="initial"
+        animate="enter"
+        variants={pageVariants}
+      >
+        <GlassCard className="max-w-4xl mx-auto">
           <LoadingCard message="Loading quiz results..." />
-        </Card>
-      </QuizLayout>
+        </GlassCard>
+      </motion.div>
+    );
+  }
+
+  if (error || !result) {
+    return (
+      <motion.div 
+        className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 p-4"
+        initial="initial"
+        animate="enter"
+        variants={pageVariants}
+      >
+        <GlassCard className="max-w-4xl mx-auto">
+          <div className="text-center py-8">
+            <motion.div 
+              className="mb-6 text-red-500 dark:text-red-400"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", bounce: 0.5 }}
+            >
+              <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </motion.div>
+            <h2 className="text-xl font-semibold mb-2 dark:text-white">Something went wrong</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+            <Link href="/quiz/start">
+              <Button variant="primary">Try Another Quiz</Button>
+            </Link>
+          </div>
+        </GlassCard>
+      </motion.div>
     );
   }
 
@@ -36,18 +119,38 @@ export default async function ResultPage(props: { params: { sessionId: string } 
   const isGood = scorePercentage >= 60;
 
   return (
-    <QuizLayout>
-      <div className="max-w-4xl mx-auto px-4">
-        <Card gradient className="mb-6">
-          <div className="space-y-8 p-6">
+    <motion.div 
+      className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 p-4"
+      initial="initial"
+      animate="enter"
+      variants={pageVariants}
+    >
+      <div className="max-w-4xl mx-auto">
+        <GlassCard className="mb-6">
+          <motion.div 
+            className="space-y-8 p-6"
+            variants={pageVariants}
+            initial="initial"
+            animate="enter"
+          >
             {/* Header */}
-            <div className="text-center">
-              <h1 className="text-3xl font-bold mb-2">Quiz Results</h1>
-              <p className="text-gray-600">Topic: {result.topic}</p>
-            </div>
+            <motion.div 
+              className="text-center"
+              variants={itemVariants}
+            >
+              <h1 className="text-3xl font-bold mb-2 dark:text-white">
+                Quiz Results
+              </h1>
+              <p className="dark:text-gray-300">
+                Topic: <GradientText>{result.topic}</GradientText>
+              </p>
+            </motion.div>
 
             {/* Score Circle */}
-            <div className="flex justify-center">
+            <motion.div 
+              className="flex justify-center"
+              variants={itemVariants}
+            >
               <div className="relative w-48 h-48">
                 <svg className="w-full h-full" viewBox="0 0 100 100">
                   {/* Background circle */}
@@ -58,9 +161,10 @@ export default async function ResultPage(props: { params: { sessionId: string } 
                     fill="none"
                     stroke="#e2e8f0"
                     strokeWidth="8"
+                    className="dark:stroke-gray-700"
                   />
                   {/* Score circle */}
-                  <circle
+                  <motion.circle
                     cx="50"
                     cy="50"
                     r="45"
@@ -68,58 +172,77 @@ export default async function ResultPage(props: { params: { sessionId: string } 
                     stroke="url(#gradient)"
                     strokeWidth="8"
                     strokeLinecap="round"
-                    strokeDasharray={`${scorePercentage * 2.827}, 282.7`}
+                    initial={{ strokeDasharray: "0, 282.7" }}
+                    animate={{ strokeDasharray: `${scorePercentage * 2.827}, 282.7` }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
                     transform="rotate(-90 50 50)"
                   />
                   <defs>
                     <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#a855f7" />
+                      <stop offset="0%" stopColor="var(--color-accent-primary)" />
+                      <stop offset="100%" stopColor="var(--color-accent-secondary)" />
                     </linearGradient>
                   </defs>
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div 
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
                   <div className="text-center">
-                    <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600">
+                    <GradientText className="text-4xl font-bold">
                       {result.score}/5
-                    </div>
-                    <div className="text-sm text-gray-500">points</div>
+                    </GradientText>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">points</div>
                   </div>
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Feedback */}
-            <div className="bg-white/50 rounded-xl p-6 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold mb-3 flex items-center">
+            <motion.div 
+              variants={itemVariants}
+              className="backdrop-blur-lg bg-white/10 dark:bg-gray-800/30 rounded-xl p-6"
+            >
+              <h3 className="text-xl font-semibold mb-3 flex items-center dark:text-white">
                 {isExcellent ? '🌟' : isGood ? '👍' : '💪'} Feedback
               </h3>
-              <div className="prose prose-slate max-w-none">
+              <div className="prose prose-slate dark:prose-invert max-w-none">
                 {result.feedback.split('\n').map((paragraph: string, i: number) => (
                   paragraph.trim() && (
-                    <p key={i} className="text-gray-700 leading-relaxed mb-4">
+                    <p key={i} className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                       {paragraph}
                     </p>
                   )
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* Questions Review */}
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold">Question Review</h3>
-              {result.questions.map((q: { question: string, options: string[], correctAnswer: string }, i: number) => (
-                <div key={i} className="bg-white/50 rounded-xl p-6 backdrop-blur-sm">
-                  <p className="font-medium mb-4">{q.question}</p>
+            <motion.div 
+              variants={itemVariants}
+              className="space-y-6"
+            >
+              <h3 className="text-xl font-semibold dark:text-white">Question Review</h3>
+              {result.questions.map((q, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="backdrop-blur-lg bg-white/10 dark:bg-gray-800/30 rounded-xl p-6"
+                >
+                  <p className="font-medium mb-4 dark:text-white">{q.question}</p>
                   <div className="space-y-2">
-                    {q.options.map((option: string, j: number) => {
+                    {q.options.map((option, j) => {
                       const isCorrect = option === q.correctAnswer;
                       const isUserAnswer = option === result.answers[i];
                       const bg = isCorrect
-                        ? 'bg-green-100'
+                        ? 'bg-green-100/80 dark:bg-green-900/30'
                         : isUserAnswer && !isCorrect
-                        ? 'bg-red-100'
-                        : 'bg-white/80';
+                        ? 'bg-red-100/80 dark:bg-red-900/30'
+                        : 'bg-white/50 dark:bg-gray-700/50';
                       const border = isCorrect
                         ? 'border-green-500'
                         : isUserAnswer && !isCorrect
@@ -127,35 +250,59 @@ export default async function ResultPage(props: { params: { sessionId: string } 
                         : 'border-transparent';
 
                       return (
-                        <div
+                        <motion.div
                           key={j}
-                          className={`p-3 rounded-lg border-2 flex items-center ${bg} ${border}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: (i * 0.1) + (j * 0.05) }}
+                          className={`p-3 rounded-lg border-2 flex items-center backdrop-blur-sm ${bg} ${border}`}
                         >
-                          <span className="flex-grow">{option}</span>
+                          <span className="flex-grow dark:text-white">{option}</span>
                           {isCorrect && (
-                            <span className="text-green-600">✓</span>
+                            <motion.span 
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring" }}
+                              className="text-green-600 dark:text-green-400"
+                            >
+                              ✓
+                            </motion.span>
                           )}
                           {isUserAnswer && !isCorrect && (
-                            <span className="text-red-600">✗</span>
+                            <motion.span 
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring" }}
+                              className="text-red-600 dark:text-red-400"
+                            >
+                              ✗
+                            </motion.span>
                           )}
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Actions */}
-            <div className="flex justify-center space-x-4">
-              <Link href="/quiz/start" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Take Another Quiz
+            <motion.div 
+              variants={itemVariants}
+              className="flex justify-center space-x-4"
+            >
+              <Link href="/quiz/start">
+                <Button 
+                  variant="primary"
+                >
+                  ✨ Take Another Quiz
+                </Button>
               </Link>
               <ShareButton topic={result.topic} score={result.score} />
-            </div>
-          </div>
-        </Card>
+            </motion.div>
+          </motion.div>
+        </GlassCard>
       </div>
-    </QuizLayout>
+    </motion.div>
   );
 }
