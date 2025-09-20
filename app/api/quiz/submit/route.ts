@@ -1,67 +1,50 @@
-import { NextResponse } from 'next/server';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { generateFeedback } from '@/lib/gemini';
 import connectDB from '@/lib/mongo';
 import QuizResult from '@/models/QuizResult';
-import { computeQuizResult } from '@/lib/recommendation';
-import { sendQuizResultEmail } from '@/lib/email';
-import { z } from 'zod';
+import { IQuestion } from '@/models/QuizResult';
 
-// Define types for the quiz submission
-type QuizAnswer = {
-  questionId: number;
-  answer: string;
-  isCorrect: boolean;
-};
-
-type QuizSubmission = {
-  email: string;
-  answers: QuizAnswer[];
-};
-
-// Validation schema for quiz submission
 const QuizSubmissionSchema = z.object({
-  email: z.string().email(),
-  answers: z.array(z.object({
-    questionId: z.number().min(1).max(5),
-    answer: z.string(),
-    isCorrect: z.boolean(),
-  })).length(5),
-}) satisfies z.Schema<QuizSubmission>;
+  sessionId: z.string(),
+  topic: z.string(),
+  questions: z.array(z.object({
+    id: z.number(),
+    question: z.string(),
+    options: z.array(z.string()),
+    correctAnswer: z.string(),
+  })),
+  answers: z.array(z.string()),
+});
 
 export async function POST(request: NextRequest) {
   try {
     // Parse and validate request body
     const body = await request.json();
     const validatedData = QuizSubmissionSchema.parse(body);
+    const { topic, questions, answers } = validatedData;
 
-    // Connect to database
+    // Calculate score
+    const score = questions.reduce((acc, q, i) => 
+      acc + (answers[i] === q.correctAnswer ? 1 : 0), 0);
+
+    // Generate feedback using Gemini
+    const feedback = await generateFeedback(topic, questions, answers);
+
+    // Save to MongoDB
     await connectDB();
-
-    // Compute quiz results
-    const { score, recommendation } = computeQuizResult(validatedData.answers);
-
-    // Create quiz result document
-    const quizResult = await QuizResult.create({
-      ...validatedData,
+    const result = await QuizResult.create({
+      topic,
+      questions,
+      answers,
       score,
-      recommendation,
-    });
-
-    // Send email
-    await sendQuizResultEmail({
-      to: validatedData.email,
-      score,
-      recommendation,
+      feedback,
     });
 
     // Return response
     return NextResponse.json({
       success: true,
-      data: {
-        id: quizResult._id,
-        score,
-        recommendation,
-      },
+      resultId: result._id,
     });
   } catch (error) {
     console.error('Quiz submission error:', error);

@@ -62,16 +62,54 @@ interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function LoadingSpinner({ size = 'md' }: LoadingSpinnerProps) {
-  const sizeStyles = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12'
+import React from 'react';
+
+interface LoadingSpinnerProps {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerProps) {
+  const sizeClasses = {
+    sm: 'w-4 h-4 border-2',
+    md: 'w-6 h-6 border-2',
+    lg: 'w-8 h-8 border-3',
   };
 
   return (
-    <div className="flex justify-center">
-      <div className={`${sizeStyles[size]} border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin`} />
+    <div
+      className={`${sizeClasses[size]} rounded-full animate-spin ${className} border-white/20 border-t-white`}
+    />
+  );
+}
+
+interface LoadingScreenProps {
+  message?: string;
+  isTransparent?: boolean;
+}
+
+export function LoadingScreen({ message = 'Loading...', isTransparent = false }: LoadingScreenProps) {
+  return (
+    <div className={`flex flex-col items-center justify-center min-h-[200px] ${isTransparent ? 'bg-transparent' : 'bg-gray-900/5 backdrop-blur-sm'} rounded-xl p-8`}>
+      <LoadingSpinner size="lg" />
+      <p className="mt-4 text-gray-600 animate-pulse">{message}</p>
+    </div>
+  );
+}
+
+export function LoadingCard({ message = 'Loading...', isTransparent = false }: LoadingScreenProps) {
+  return (
+    <div className={`space-y-8 ${isTransparent ? '' : 'p-6'}`}>
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded-full w-3/4 mx-auto" />
+        <div className="h-48 bg-gray-200 rounded-full w-48 mx-auto" />
+        <div className="space-y-3">
+          <div className="h-4 bg-gray-200 rounded w-full" />
+          <div className="h-4 bg-gray-200 rounded w-5/6" />
+          <div className="h-4 bg-gray-200 rounded w-4/6" />
+        </div>
+      </div>
+      <div className="text-center text-gray-600">{message}</div>
     </div>
   );
 }
